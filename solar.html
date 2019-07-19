@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+    <head>		
+		<title>Solar System</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	
+		<!-- CSS -->
+		<link type="text/css" rel="stylesheet" href="css/style.css" />
+		<link rel="icon" type="image/png" sizes="16x16" href="img/img.png">
+
+		<script type="text/javascript" src="js/jquery.min.js"></script>
+		<script type="text/javascript" src="js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="js/jquery.magnific-popup.js"></script>
+		<script type="text/javascript" src="js/main.js"></script>
+		<script src="js/three.min.js"></script>
+		<script src="js/OrbitControls.js"></script>
+		<script src="js/GLTFLoader.js"></script>
+		<script src="js/stats.min.js"></script>
+		<script src="js/CSS2DRenderer.js"></script>
+		<script src="js/libs/dat.gui.min.js"></script>
+		  
+  </head>
+
+    <body>
+	<div id="info"></div>
+	
+	<script>		
+	
+ 	// Carrega Cenario
+	var scene = new THREE.Scene(); 
+	scene2 = new THREE.Scene();
+	var Stats;
+	var innerw,height;
+	var stars=[];
+	var guic, controlConfig= {
+	freezState: false,
+	revolveSpeed: 24
+	};
+
+
+	// Path para orbita
+	var marker, spline;
+	var matrix = new THREE.Matrix4();
+	var up = new THREE.Vector3( 0, 1, 0 );
+	var axis = new THREE.Vector3( );
+
+	// orbita variaveis
+	var mercpath,venpath,earthpath,marspath,marspath2,marspath3,juppath,juppath2,juppath3,satpath,satpath2,satpath3,urapath,urapath2,neppath,neppath2,neppath3,neppath4,neppath5,dez,dez2,onzepath,onzepath2,onzepath3;
+
+	var planobj=[];
+	var pathobj=[];
+
+	// the getPoint starting variable - !important - You get me ;)
+	var mt=vet=eat=mat=mat2=mat3=jupt=jupt2=jupt3=satt=satt2=satt3=urat=urat2=nept=nept2=nept3=nept4=nept5=dezt=dezt2=onzet=onzet2=onzet3 = 0;
+	// Ellipse class, which extends the virtual base class Curve
+	function Ellipse( xRadius, yRadius ) {
+	THREE.Curve.call( this );
+	// add radius as a property
+	this.xRadius = xRadius;
+	this.yRadius = yRadius;
+	}
+
+	Ellipse.prototype = Object.create( THREE.Curve.prototype );
+	Ellipse.prototype.constructor = Ellipse;
+
+	// define the getPoint function for the subClass
+	Ellipse.prototype.getPoint = function ( t ) {
+
+		var radians = 2 * Math.PI * t;
+		return new THREE.Vector3( this.xRadius * Math.cos( radians ),0,this.yRadius * Math.sin( radians ) );
+
+	};
+
+ 	// Load Camera Perspective
+	var camera = new THREE.PerspectiveCamera( 25, window.innerWidth / window.innerHeight, 1, 20000 );
+	camera.position.set( 10, 30, 100 );
+	
+	// RayCaster 
+	raycaster = new THREE.Raycaster();
+	mouse = new THREE.Vector2();
+
+	// Load a Renderer
+	var renderer = new THREE.WebGLRenderer({antialias: true});
+	renderer.setClearColor( 0x000000 );
+	renderer.setPixelRatio( window.devicePixelRatio );
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	innerw=window.innerWidth;
+	height=window.innerHeight;
+	document.body.appendChild(renderer.domElement);
+
+ 	// Load the Orbitcontroller
+	var controls = new THREE.OrbitControls( camera, renderer.domElement ); 
+	controls.minDistance=10;
+	controls.maxDistance=500;
+
+ 	// Load Light
+	var ambientLight = new THREE.AmbientLight( 0xffffff );
+	scene.add( ambientLight );
+
+
+	var directionalLight = new THREE.DirectionalLight( 0xffffff );
+	directionalLight.position.set( 0, 1, 1 ).normalize();
+	scene.add( directionalLight );	
+
+
+	// Stars
+	function addSphere(){
+		// The loop will move from z position of -1000 to z position 1000, adding a random particle at each position. 
+		for ( var z= -1000; z < 1000; z+=20 ) {
+		// Make a sphere (exactly the same as before). 
+		var geometry   = new THREE.SphereGeometry(0.5, 32, 32)
+		var material = new THREE.MeshBasicMaterial( {color: 0xffffff} );
+		var sphere = new THREE.Mesh(geometry, material)
+		sphere.position.x= Math.random()*innerw-Math.random()*innerw*2;
+		sphere.position.y=Math.random()*height-Math.random()*height*2;
+		// Then set the z position to where it is in the loop (distance of camera)
+		sphere.position.z = z;	
+		// scale it up a bit
+		sphere.scale.x = sphere.scale.y = 1;
+		//add the sphere to the scene
+		scene.add( sphere );
+			//finally push it to the stars array 
+			stars.push(sphere); 
+		}
+	}
+	function animateStars() { 
+				
+				// loop through each star
+				for(var i=0; i<stars.length; i++) {
+					star = stars[i]; 
+					// and move it forward dependent on the mouseY position. 
+					star.position.z +=  i/10;
+					// if the particle is too close move it to the back
+					if(star.position.z>2000) star.position.z-=3000; 
+					
+				}
+			
+	}
+
+    // params
+    var pathSegments = 128;
+    var tubeRadius = 0.03;
+    var radiusSegments = 3;
+    var closed = true;
+
+    // material
+    var material = new THREE.MeshPhongMaterial( {
+        color: '#272727', 
+    } );
+	
+    // mercury orbit mesh
+	mercpath = new Ellipse( 15, 10 );
+    var mercgeometry = new THREE.TubeBufferGeometry( mercpath, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( mercgeometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+	
+	// venus orbit mesh
+	venpath = new Ellipse(22,15);
+    var venusgeometry = new THREE.TubeBufferGeometry( venpath, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( venusgeometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+	// Earth Orbit
+	earthpath = new Ellipse( 28, 22 );
+    var earthgeometry = new THREE.TubeBufferGeometry( earthpath, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( earthgeometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+	
+	// Mars Orbit
+	marspath = new Ellipse( 35, 28 );
+    var marsgeometry = new THREE.TubeBufferGeometry( marspath, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( marsgeometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	// Mars Orbit 2
+	marspath2 = new Ellipse( 35, 28 );
+    var mars2geometry = new THREE.TubeBufferGeometry( marspath2, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( mars2geometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	// Mars Orbit 3
+	marspath3 = new Ellipse( 35, 28 );
+    var mars3geometry = new THREE.TubeBufferGeometry( marspath3, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( mars3geometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	// Jupiter Orbit
+	juppath = new Ellipse( 46, 34 );
+    var jupgeometry = new THREE.TubeBufferGeometry( juppath, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( jupgeometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	// Jupiter Orbit 2
+	juppath2 = new Ellipse( 46, 34 );
+    var jup2geometry = new THREE.TubeBufferGeometry( juppath2, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( jup2geometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	// Jupiter Orbit 3
+	juppath3 = new Ellipse( 46, 34 );
+    var jup3geometry = new THREE.TubeBufferGeometry( juppath3, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( jup3geometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	// Saturn Orbit
+	satpath = new Ellipse( 57, 42 );
+    var satgeometry = new THREE.TubeBufferGeometry( satpath, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( satgeometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	// Saturn Orbit 2
+	satpath2 = new Ellipse( 57, 42 );
+    var sat2geometry = new THREE.TubeBufferGeometry( satpath2, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( sat2geometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	// Saturn Orbit 3
+	satpath3 = new Ellipse( 57, 42 );
+    var sat3geometry = new THREE.TubeBufferGeometry( satpath3, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( sat3geometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	// Uranus Orbit
+	urapath = new Ellipse( 69, 49 );
+    var urageometry = new THREE.TubeBufferGeometry( urapath, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( urageometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	// Uranus Orbit 2
+	urapath2 = new Ellipse( 69, 49 );
+    var ura2geometry = new THREE.TubeBufferGeometry( urapath2, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( ura2geometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	// Neptune Orbit
+	neppath = new Ellipse( 79, 59 );
+    var nepgeometry = new THREE.TubeBufferGeometry( neppath, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( nepgeometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	// Neptune Orbit 2
+	neppath2 = new Ellipse( 79, 59 );
+    var nep2geometry = new THREE.TubeBufferGeometry( neppath2, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( nep2geometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	// Neptune Orbit 3
+	neppath3 = new Ellipse( 79, 59 );
+    var nep3geometry = new THREE.TubeBufferGeometry( neppath3, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( nep3geometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	// Neptune Orbit 4
+	neppath4 = new Ellipse( 79, 59 );
+    var nep4geometry = new THREE.TubeBufferGeometry( neppath4, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( nep4geometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	// Neptune Orbit 5
+	neppath5 = new Ellipse( 79, 59 );
+    var nep5geometry = new THREE.TubeBufferGeometry( neppath5, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( nep5geometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	//dez
+	dez = new Ellipse( 89, 69 );
+    var dezgeometry = new THREE.TubeBufferGeometry( dez, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( dezgeometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	//dez 2
+	dez2 = new Ellipse( 89, 69 );
+    var dez2geometry = new THREE.TubeBufferGeometry( dez2, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( dez2geometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	//onze
+	onzepath = new Ellipse( 99, 79 );
+    var onzegeometry = new THREE.TubeBufferGeometry( onzepath, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( onzegeometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	//onze 2 
+	onzepath2 = new Ellipse( 99, 79 );
+    var onze2geometry = new THREE.TubeBufferGeometry( onzepath2, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( onze2geometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+
+	//onze 3
+	onzepath3 = new Ellipse( 99, 79 );
+    var onze3geometry = new THREE.TubeBufferGeometry( onzepath3, pathSegments, tubeRadius, radiusSegments, closed );
+	mesh = new THREE.Mesh( onze3geometry, material );
+	scene.add( mesh );
+	pathobj.push(mesh);
+	
+ 	// glTf 2.0 Loader
+	var loader = new THREE.GLTFLoader();
+	
+	// Planets variables;
+	var sun,mercury,mercury2,venus,earth,mars,mars2,mars3,jupiter,jupiter2,jupiter3,saturn,saturn2,saturn3,uranus,uranus2,neptune,neptune2,neptune3,neptune4,neptune5,ginfinita,hfevespa,ultimato,hallar,g3;	
+
+	var moonorbit;		
+
+
+	loader.load( 'model/sun/sun.gltf', function ( gltf ) {           //   <<--------- Model Path
+	sun = gltf.scene;			
+	gltf.scene.scale.set( 15, 15, 15 );			   
+	gltf.scene.position.x = 0;				    //Position (x = right+ left-) 
+    gltf.scene.position.y = -3;				    //Position (y = up+, down-)
+	gltf.scene.position.z = -4;				    //Position (z = front +, back-)
+	//gltf.animations;
+	scene.add( gltf.scene );
+	planobj.push(sun);
+	});
+
+	loader.load( 'model/mercury/mercury.gltf', function ( gltf ) {           //   <<--------- Model Path
+	mercury = gltf.scene;			
+	gltf.scene.scale.set( 8.8,8.8,8.8 );			   
+	var pt = mercpath.getPoint( mt );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(mercury);
+	});
+
+	loader.load( 'model/venus/venus.gltf', function ( gltf ) {           //   <<--------- Model Path
+	venus = gltf.scene;
+	gltf.scene.scale.set( 8.8,8.8,8.8 );			   
+	var pt = venpath.getPoint( vet );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(venus);
+	});
+
+	loader.load( 'model/earth/earth.gltf', function ( gltf ) {           //   <<--------- Model Path
+	earth = gltf.scene;			
+	gltf.scene.scale.set( 8.8,8.8,8.8 );			   
+	var pt = earthpath.getPoint( eat );
+	moonorbit = earthpath.getPoint( eat );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(earth);
+	});
+
+	loader.load( 'model/mars/mars.gltf', function ( gltf ) {           //   <<--------- Model Path
+	mars = gltf.scene;			
+	gltf.scene.scale.set( 12.4,12.4,12.4 );			   
+	var pt = marspath.getPoint( mat );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(mars);
+	});
+
+	loader.load( 'model/mars2/hf2.gltf', function ( gltf ) {           //   <<--------- Model Path
+	mars2 = gltf.scene;			
+	gltf.scene.scale.set( 12.4,12.4,12.4 );			   
+	var pt = marspath2.getPoint( mat2 );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(mars2);
+	});
+
+	loader.load( 'model/mars3/hulk.gltf', function ( gltf ) {           //   <<--------- Model Path
+	mars3 = gltf.scene;			
+	gltf.scene.scale.set( 8.8,8.8,8.8 );			   
+	var pt = marspath3.getPoint( mat3 );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(mars3);
+	});
+
+	loader.load( 'model/jupiter/jupiter.gltf', function ( gltf ) {           //   <<--------- Model Path
+	jupiter = gltf.scene;			
+	gltf.scene.scale.set( 8.8, 8.8, 8.8 );			   
+	var pt = juppath.getPoint( jupt );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(jupiter);
+	});
+
+	loader.load( 'model/jupiter2/hf3.gltf', function ( gltf ) {           //   <<--------- Model Path
+	jupiter2 = gltf.scene;			
+	gltf.scene.scale.set( 8.8, 8.8, 8.8 );			   
+	var pt = juppath2.getPoint( jupt2 );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(jupiter2);
+	});
+
+	loader.load( 'model/jupiter3/vingadores.gltf', function ( gltf ) {           //   <<--------- Model Path
+	jupiter3 = gltf.scene;			
+	gltf.scene.scale.set( 15, 15, 15 );			   
+	var pt = juppath3.getPoint( jupt3 );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(jupiter3);
+	});
+	
+	loader.load( 'model/saturn/saturn.gltf', function ( gltf ) {           //   <<--------- Model Path
+	saturn = gltf.scene;			
+	gltf.scene.scale.set( 12.4,12.4,12.4 );			   
+	var pt = satpath.getPoint( satt );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(saturn);
+	});
+
+	loader.load( 'model/saturn2/gua1.gltf', function ( gltf ) {           //   <<--------- Model Path
+	saturn2 = gltf.scene;			
+	gltf.scene.scale.set( 12.4,12.4,12.4 );			   
+	var pt = satpath2.getPoint( satt2 );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(saturn2);
+	});
+
+	loader.load( 'model/saturn3/gua2.gltf', function ( gltf ) {           //   <<--------- Model Path
+	saturn3 = gltf.scene;			
+	gltf.scene.scale.set( 12.4,12.4,12.4 );			   
+	var pt = satpath3.getPoint( satt3 );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(saturn3);
+	});
+
+	loader.load( 'model/uranus/uranus.gltf', function ( gltf ) {           //   <<--------- Model Path
+	uranus = gltf.scene;			
+	gltf.scene.scale.set( 8.8,8.8,8.8 );			   
+	var pt = urapath.getPoint( urat );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(uranus);
+	});
+
+	loader.load( 'model/uranus2/ultron.gltf', function ( gltf ) {           //   <<--------- Model Path
+	uranus2 = gltf.scene;			
+	gltf.scene.scale.set( 17.6,17.6,17.6 );			   
+	var pt = urapath2.getPoint( urat2 );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(uranus2);
+	});
+
+	loader.load( 'model/neptune/neptune.gltf', function ( gltf ) {           //   <<--------- Model Path
+	neptune = gltf.scene;			
+	gltf.scene.scale.set( 17.6,17.6,17.6 );			   
+	var pt = neppath.getPoint( nept );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(neptune);
+	});
+
+	loader.load( 'model/neptune2/pnegra.gltf', function ( gltf ) {           //   <<--------- Model Path
+	neptune2 = gltf.scene;			
+	gltf.scene.scale.set( 8.8,8.8,8.8 );			   
+	var pt = neppath2.getPoint( nept2 );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(neptune2);
+	});
+
+	loader.load( 'model/neptune3/drestranho.gltf', function ( gltf ) {           //   <<--------- Model Path
+	neptune3 = gltf.scene;			
+	gltf.scene.scale.set( 8.8,8.8,8.8 );			   
+	var pt = neppath3.getPoint( nept3 );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(neptune3);
+	});
+
+	loader.load( 'model/neptune4/hmvlar.gltf', function ( gltf ) {           //   <<--------- Model Path
+	neptune4 = gltf.scene;			
+	gltf.scene.scale.set( 8.8,8.8,8.8 );			   
+	var pt = neppath4.getPoint( nept4 );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(neptune4);
+	});
+
+	loader.load( 'model/neptune5/thorrag.gltf', function ( gltf ) {           //   <<--------- Model Path
+	neptune5 = gltf.scene;			
+	gltf.scene.scale.set( 12.4,12.4,12.4 );			   
+	var pt = neppath5.getPoint( nept5 );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(neptune5);
+	});
+
+	loader.load( 'model/ginfinita/ginfinita.gltf', function ( gltf ) {           //   <<--------- Model Path
+	ginfinita = gltf.scene;			
+	gltf.scene.scale.set( 20,20,20 );			   
+	var pt = dez.getPoint( dezt );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(ginfinita);
+	});
+
+	loader.load( 'model/hfevespa/hfevespa.gltf', function ( gltf ) {           //   <<--------- Model Path
+	hfevespa = gltf.scene;			
+	gltf.scene.scale.set( 8.8,8.8,8.8 );			   
+	var pt = dez2.getPoint( dezt2 );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(hfevespa);
+	});
+
+	loader.load( 'model/ultimato/ultimato.gltf', function ( gltf ) {           //   <<--------- Model Path
+	ultimato = gltf.scene;			
+	gltf.scene.scale.set( 20,20,20 );			   
+	var pt = onzepath.getPoint( onzet );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(ultimato);
+	});
+
+	loader.load( 'model/hallar/hallar.gltf', function ( gltf ) {           //   <<--------- Model Path
+	hallar = gltf.scene;			
+	gltf.scene.scale.set( 8.8,8.8,8.8 );			   
+	var pt = onzepath2.getPoint( onzet2 );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(hallar);
+	});
+
+	loader.load( 'model/g3/g3.gltf', function ( gltf ) {           //   <<--------- Model Path
+	g3 = gltf.scene;			
+	gltf.scene.scale.set( 12.4,12.4,12.4 );			   
+	var pt = onzepath3.getPoint( onzet3 );
+	gltf.scene.position.set(pt.x,pt.y,pt.z);
+	scene.add( gltf.scene);
+	planobj.push(g3);
+	});
+
+	// FPS stats
+	stats = new Stats();
+	document.body.appendChild( stats.dom );
+	window.addEventListener( 'resize', onWindowResize, false );
+
+
+	document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+	document.addEventListener( 'touchstart', onDocumentTouchStart, false );
+
+	guic = new dat.GUI( { width: 350 } );
+
+	// Controls
+	var controlGUI = guic.addFolder( "Controls" );
+	//controlGUI.add(controlConfig.freezState,'Freeze State').listen();
+
+	controlGUI.add( controlConfig, 'freezState' )
+	
+	controlGUI.add( controlConfig, 'revolveSpeed', 1, 24 ).onChange( function() {});
+
+
+
+	function onWindowResize( event ) 
+	{
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	//controls.handleResize();
+	}
+	
+	function onDocumentTouchStart( event ) {
+
+	event.preventDefault();
+
+	event.clientX = event.touches[0].clientX;
+	event.clientY = event.touches[0].clientY;
+	onDocumentMouseDown( event );
+	}
+
+function onDocumentMouseDown( event ) {
+
+	event.preventDefault();
+
+	mouse.x = ( event.clientX / renderer.domElement.clientWidth ) * 2 - 1;
+	mouse.y = - ( event.clientY / renderer.domElement.clientHeight ) * 2 + 1;
+
+	raycaster.setFromCamera( mouse, camera );
+
+	 var intersects = raycaster.intersectObjects( pathobj );
+
+	if ( intersects.length > 0 ) {
+	var pt = intersects[0].getPoint( mt );
+
+	
+	}
+
+}
+	function animate() 
+	{
+	requestAnimationFrame( animate );
+	renderer.render( scene, camera );
+	//if (!guic.freezState) return;
+	animateStars();
+	// TO freeze Planet State
+
+	if(!controlConfig.freezState)
+		revolvePlanet();
+	console.log(controlConfig.revolveSpeed);
+	stats.update();
+	}
+
+
+	function revolvePlanet(){
+		if (mercury)
+		{ 	mercury.rotation.y+=0.0001;
+			// mercury.rotation.z+=0.001;
+			var pt = mercpath.getPoint( mt );
+			var tangent = mercpath.getTangent( mt ).normalize();
+			mercury.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			mt = (mt >= 1) ? 0 : mt += (0.03/controlConfig.revolveSpeed);
+		}
+
+		if (venus) 
+		{	
+			venus.rotation.y+=0.0001;
+			var pt = venpath.getPoint( vet );
+			var tangent = venpath.getTangent( vet ).normalize();
+			venus.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			vet = (vet >= 1) ? 0 : vet += 0.02/controlConfig.revolveSpeed;
+		}
+		if (earth)
+		{ 	earth.rotation.y+=0.0001;
+			var pt = earthpath.getPoint( eat );
+			var tangent = earthpath.getTangent( eat ).normalize();
+			earth.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );	
+			eat = (eat >= 1) ? 0 : eat += 0.01/controlConfig.revolveSpeed;
+		}
+		if (mars) 
+		{	mars.rotation.z+=0.0001;
+			var pt = marspath.getPoint( mat );
+			var tangent = marspath.getTangent( mat );
+			mars.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			mat = (mat >= 1) ? 0 : mat += 0.009/controlConfig.revolveSpeed;
+		}
+		if (mars2) 
+		{	mars2.rotation.z+=0.0001;
+			var pt = marspath2.getPoint( mat2 );
+			var tangent = marspath2.getTangent( mat2 );
+			mars2.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			mat2 = (mat2 >= 1) ? 0 : mat2 += 0.008/controlConfig.revolveSpeed;
+		}
+		if (mars3) 
+		{	mars3.rotation.z+=0.0001;
+			var pt = marspath3.getPoint( mat3 );
+			var tangent = marspath3.getTangent( mat3 );
+			mars3.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			mat3 = (mat3 >= 1) ? 0 : mat3 += 0.007/controlConfig.revolveSpeed;
+		}
+		if (jupiter) 
+		{	jupiter.rotation.y+=0.0001;
+			var pt = juppath.getPoint( jupt );
+			var tangent = juppath.getTangent( jupt ).normalize();
+			jupiter.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			jupt = (jupt >= 1) ? 0 : jupt += 0.006/controlConfig.revolveSpeed;
+		}
+		if (jupiter2) 
+		{	jupiter2.rotation.y+=0.0001;
+			var pt = juppath2.getPoint( jupt2 );
+			var tangent = juppath.getTangent( jupt2 ).normalize();
+			jupiter2.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			jupt2 = (jupt2 >= 1) ? 0 : jupt2 += 0.005/controlConfig.revolveSpeed;
+		}
+		if (jupiter3) 
+		{	jupiter3.rotation.y+=0.0001;
+			var pt = juppath3.getPoint( jupt3 );
+			var tangent = juppath3.getTangent( jupt3 ).normalize();
+			jupiter3.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			jupt3 = (jupt3 >= 1) ? 0 : jupt3 += 0.004/controlConfig.revolveSpeed;
+		}
+		if (saturn) 
+		{	saturn.rotation.y+=0.0001;
+			var pt = satpath.getPoint( satt );
+			var tangent = satpath.getTangent( satt ).normalize();
+			saturn.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			satt = (satt >= 1) ? 0 : satt += 0.003/controlConfig.revolveSpeed;
+		}
+		if (saturn2) 
+		{	saturn2.rotation.y+=0.0001;
+			var pt = satpath2.getPoint( satt2 );
+			var tangent = satpath2.getTangent( satt2 ).normalize();
+			saturn2.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			satt2 = (satt2 >= 1) ? 0 : satt2 += 0.002/controlConfig.revolveSpeed;
+		}
+		if (saturn3) 
+		{	saturn3.rotation.y+=0.0001;
+			var pt = satpath3.getPoint( satt3 );
+			var tangent = satpath.getTangent( satt3 ).normalize();
+			saturn3.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			satt3 = (satt3 >= 1) ? 0 : satt3 += 0.001/controlConfig.revolveSpeed;
+		}
+		if (uranus) 
+		{	uranus.rotation.y+=0.0001;
+			var pt = urapath.getPoint( urat );
+			var tangent = urapath.getTangent( urat ).normalize();
+			uranus.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			urat = (urat >= 1) ? 0 : urat += 0.0009/controlConfig.revolveSpeed;
+		}
+		if (uranus2) 
+		{	uranus2.rotation.y+=0.0001;
+			var pt = urapath2.getPoint( urat2 );
+			var tangent = urapath2.getTangent( urat2 ).normalize();
+			uranus2.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			urat2 = (urat2 >= 1) ? 0 : urat2 += 0.0008/controlConfig.revolveSpeed;
+		}
+		if (neptune) 
+		{	neptune.rotation.y+=0.0001;
+			var pt = neppath.getPoint( nept );
+			var tangent = neppath.getTangent( nept ).normalize();
+			neptune.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			nept = (nept >= 1) ? 0 : nept += 0.0007/controlConfig.revolveSpeed;
+		}
+		if (neptune2) 
+		{	neptune2.rotation.y+=0.0001;
+			var pt = neppath2.getPoint( nept2 );
+			var tangent = neppath2.getTangent( nept2 ).normalize();
+			neptune2.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			nept2 = (nept2 >= 1) ? 0 : nept2 += 0.0006/controlConfig.revolveSpeed;
+		}
+		if (neptune3) 
+		{	neptune3.rotation.y+=0.0001;
+			var pt = neppath3.getPoint( nept3 );
+			var tangent = neppath3.getTangent( nept3 ).normalize();
+			neptune3.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			nept3 = (nept3 >= 1) ? 0 : nept3 += 0.0005/controlConfig.revolveSpeed;
+		}
+		if (neptune4) 
+		{	neptune4.rotation.y+=0.0001;
+			var pt = neppath4.getPoint( nept4 );
+			var tangent = neppath4.getTangent( nept ).normalize();
+			neptune4.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			nept4 = (nept4 >= 1) ? 0 : nept4 += 0.0004/controlConfig.revolveSpeed;
+		}
+		if (neptune5) 
+		{	neptune5.rotation.y+=0.0001;
+			var pt = neppath5.getPoint( nept5 );
+			var tangent = neppath5.getTangent( nept5 ).normalize();
+			neptune5.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			nept5 = (nept5 >= 1) ? 0 : nept5 += 0.0003/controlConfig.revolveSpeed;
+		}
+		if (ginfinita) 
+		{	ginfinita.rotation.y+=0.0001;
+			var pt = dez.getPoint( dezt );
+			var tangent = dez.getTangent( dezt ).normalize();
+			ginfinita.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			dezt = (dezt >= 1) ? 0 : dezt += 0.0002/controlConfig.revolveSpeed;
+		}
+		if (hfevespa) 
+		{	hfevespa.rotation.y+=0.0001;
+			var pt = dez2.getPoint( dezt2 );
+			var tangent = dez.getTangent( dezt2 ).normalize();
+			hfevespa.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			dezt2 = (dezt2 >= 1) ? 0 : dezt2 += 0.0001/controlConfig.revolveSpeed;
+		}
+		if (ultimato) 
+		{	ultimato.rotation.y+=0.0001;
+			var pt = onzepath.getPoint( onzet );
+			var tangent = onzepath.getTangent( onzet ).normalize();
+			ultimato.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			onzet = (onzet >= 1) ? 0 : onzet += 0.0002/controlConfig.revolveSpeed;
+		}
+		if (hallar) 
+		{	hallar.rotation.y+=0.0001;
+			var pt = onzepath2.getPoint( onzet2 );
+			var tangent = onzepath2.getTangent( onzet2 ).normalize();
+			hallar.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			onzet2 = (onzet2 >= 1) ? 0 : onzet2 += 0.0003/controlConfig.revolveSpeed;
+		}
+		if (g3) 
+		{	g3.rotation.y+=0.0001;
+			var pt = onzepath3.getPoint( onzet3 );
+			var tangent = onzepath3.getTangent( onzet3 ).normalize();
+			g3.position.set(pt.x,pt.y,pt.z);
+			// calculate the axis to rotate around
+			axis.crossVectors( up, tangent ).normalize();
+			// calcluate the angle between the up vector and the tangent
+			var radians = Math.acos( up.dot( tangent ) );
+			onzet3 = (onzet3 >= 1) ? 0 : onzet3 += 0.0004/controlConfig.revolveSpeed;
+		}
+		
+
+	}
+	addSphere();
+	animate();
+			
+</script>	
+</body>
+</html>
