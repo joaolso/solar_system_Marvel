@@ -9,6 +9,10 @@ https://nodejs.org/en/ -> Node.js !recomended
 
 https://github.com/greggman/servez/releases/tag/v1.0.1 -> ServeZ
 
+Acess: "Cd your/Local/File/"
+run http server with command: "http-server ." on file project. (node.js)
+
+so enjoy!
 
 Graph Drawing 2019 - Marvel :
 http://mozart.diei.unipg.it/gdcontest/contest2019/topics.html
