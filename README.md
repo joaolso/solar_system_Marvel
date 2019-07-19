@@ -12,6 +12,8 @@ https://github.com/greggman/servez/releases/tag/v1.0.1 -> ServeZ
 Acess: "Cd your/Local/File/"
 run http server with command: "http-server ." on file project. (node.js)
 
+Acess browser localhost5000,,8080,8000 choose what you soft recommend.
+
 so enjoy!
 
 Graph Drawing 2019 - Marvel :
